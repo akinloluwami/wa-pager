@@ -3,6 +3,8 @@ import { createClient } from "@libsql/client/web";
 import { Hono } from "hono";
 import twilio from "twilio";
 import "dotenv/config";
+import { readFileSync } from "fs";
+import { join } from "path";
 
 const db = createClient({
   url: process.env.DB_URL!,
@@ -18,7 +20,8 @@ const client = twilio(accountSid, authToken);
 const app = new Hono();
 
 app.get("/", (c) => {
-  return c.text("Hello Hono!");
+  const html = readFileSync(join(process.cwd(), "index.html"), "utf-8");
+  return c.html(html);
 });
 
 app.post("/alert", async (c) => {
