@@ -140,6 +140,24 @@
         border: 1px solid #f5c6cb;
       }
 
+      .error-input {
+        border-color: #dc3545 !important;
+        background-color: #fff5f5;
+      }
+
+      .field-error {
+        color: #dc3545;
+        font-size: 12px;
+        margin-top: 5px;
+        display: none;
+      }
+
+      .phone-hint {
+        font-size: 12px;
+        color: #666;
+        margin-top: 5px;
+      }
+
       .logs-container {
         max-height: 500px;
         overflow-y: auto;
@@ -207,6 +225,11 @@
               placeholder="+1234567890"
               required
             />
+            <div class="phone-hint">
+              Include country code (e.g., +1 for US, +44 for UK, +234 for
+              Nigeria)
+            </div>
+            <div id="phone-error" class="field-error"></div>
           </div>
 
           <button type="submit" class="btn">Send Alert</button>
@@ -242,6 +265,70 @@
         document.getElementById(tabName + "-tab").classList.add("active");
       }
 
+      // Phone number validation function
+      function validatePhoneNumber(phone) {
+        const phoneInput = document.getElementById("phone");
+        const phoneError = document.getElementById("phone-error");
+
+        // Clear previous error states
+        phoneInput.classList.remove("error-input");
+        phoneError.style.display = "none";
+        phoneError.textContent = "";
+
+        if (!phone) {
+          showFieldError("phone", "Phone number is required");
+          return false;
+        }
+
+        // Remove spaces and special characters except +
+        const cleanPhone = phone.replace(/[\s\-\(\)]/g, "");
+
+        // Check if it starts with +
+        if (!cleanPhone.startsWith("+")) {
+          showFieldError(
+            "phone",
+            "Phone number must start with country code (e.g., +1234567890)",
+          );
+          return false;
+        }
+
+        // Check if it has the right format: + followed by digits
+        const phoneRegex = /^\+[1-9]\d{9,14}$/;
+        if (!phoneRegex.test(cleanPhone)) {
+          showFieldError(
+            "phone",
+            "Invalid phone number format. Use +[country code][number] (10-15 digits total)",
+          );
+          return false;
+        }
+
+        return true;
+      }
+
+      function showFieldError(fieldId, message) {
+        const field = document.getElementById(fieldId);
+        const errorDiv = document.getElementById(fieldId + "-error");
+
+        field.classList.add("error-input");
+        errorDiv.textContent = message;
+        errorDiv.style.display = "block";
+      }
+
+      function clearFieldErrors() {
+        document.querySelectorAll(".error-input").forEach((input) => {
+          input.classList.remove("error-input");
+        });
+        document.querySelectorAll(".field-error").forEach((error) => {
+          error.style.display = "none";
+          error.textContent = "";
+        });
+      }
+
+      // Clear errors when user starts typing
+      document.getElementById("phone").addEventListener("input", function (e) {
+        clearFieldErrors();
+      });
+
       // Handle form submission
       document
         .getElementById("alert-form")
@@ -252,10 +339,18 @@
           const statusDiv = document.getElementById("send-status");
           const submitBtn = e.target.querySelector('button[type="submit"]');
 
+          // Clear previous status
+          statusDiv.style.display = "none";
+          clearFieldErrors();
+
+          // Validate phone number
+          if (!validatePhoneNumber(phone)) {
+            return;
+          }
+
           // Disable button and show loading
           submitBtn.disabled = true;
           submitBtn.textContent = "Sending...";
-          statusDiv.style.display = "none";
 
           try {
             const response = await fetch("/alert", {
@@ -277,8 +372,9 @@
 
               // Clear form
               document.getElementById("phone").value = "";
+              clearFieldErrors();
             } else {
-              throw new Error(result.error || "Failed to send alert");
+              throw new Error(result.message || "Failed to send alert");
             }
           } catch (error) {
             statusDiv.className = "status error";
