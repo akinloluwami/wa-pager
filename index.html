@@ -420,6 +420,11 @@
             '<div class="empty-state">❌ Error loading logs</div>';
         }
       }
+
+      // Load logs when page loads
+      document.addEventListener("DOMContentLoaded", function () {
+        loadLogs();
+      });
     </script>
   </body>
 </html>
